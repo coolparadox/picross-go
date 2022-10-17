@@ -1,9 +1,14 @@
 package solver
 
-func hfill(sum uint, count uint) []uint {
-    ans := make([]uint, 2)
-    ans[0] = sum
-    ans[1] = count
-    return ans
+func hfill(sum uint, count uint) chan []uint {
+    ch := make(chan []uint)
+    go func() {
+        elm := make([]uint, 2)
+        elm[0] = sum
+        elm[1] = count
+        ch <- elm
+        close(ch)
+    }()
+    return ch
 }
 
