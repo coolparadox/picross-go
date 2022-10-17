@@ -1,4 +1,4 @@
-package solver
+package combinatorics
 
 import (
     "testing"
@@ -34,7 +34,7 @@ func TestHFill0(t *testing.T) {
         {2,2,1},
         {3,1,1},
     }
-    fills_ch := hFill(5, 3)
+    fills_ch := HFill(5, 3)
     fills := [][]uint{}
     for fill := range fills_ch {
         fills = append(fills, fill)
