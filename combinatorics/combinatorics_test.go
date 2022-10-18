@@ -97,3 +97,15 @@ func TestXFill53(t *testing.T) {
     checkFills(t, xFill(5, 3), exps)
 }
 
+func TestBlend2(t *testing.T) {
+    if !uint_slices_equal(blend2([]uint{10,11}, []uint{20,21}), []uint{10,20,11,21}) {
+        t.Errorf(`mismatch`)
+    }
+    if !uint_slices_equal(blend2([]uint{10}, []uint{20,21}), []uint{10,20,21}) {
+        t.Errorf(`mismatch`)
+    }
+    if !uint_slices_equal(blend2([]uint{10,11}, []uint{20}), []uint{10,20,11}) {
+        t.Errorf(`mismatch`)
+    }
+}
+

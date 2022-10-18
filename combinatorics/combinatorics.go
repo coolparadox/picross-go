@@ -2,6 +2,28 @@
 // puzzles.
 package combinatorics
 
+// blend2 returns a slice whose first element is the first element of `as`,
+// the second element is the first element of `bs`,
+// the third element is the second element of `as` and so on.
+func blend2(as []uint, bs []uint) []uint {
+    lenb := len(bs)
+    ans := make([]uint, len(as)+lenb)
+    var idx int
+    for i, a := range as {
+        ans[idx] = a; idx++
+        if i < lenb {
+            ans[idx] = bs[i]; idx++
+        }
+    }
+    for i := len(as); i < lenb; i++ {
+        ans[idx] = bs[i]; idx++
+    }
+    if idx != len(as)+len(bs) {
+        panic("blend2: panic: bad logic")
+    }
+    return ans
+}
+
 // xFill returns a channel that provides all combinations of integer numbers where
 // the sum of all elements is `sum`,
 // the amount of elements is `count`,
