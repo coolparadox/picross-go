@@ -25,7 +25,7 @@ func uint_slice_in_slice(elm []uint, source [][]uint) bool {
     return false
 }
 
-func checkFills(t *testing.T, ch chan []uint, exps [][]uint) {
+func checkExpectedUIntSlice(t *testing.T, ch chan []uint, exps [][]uint) {
     fills := [][]uint{}
     for fill := range ch {
         if !uint_slice_in_slice(fill, exps) {
@@ -44,7 +44,7 @@ func TestHFill51(t *testing.T) {
     exps := [][]uint{
         {5},
     }
-    checkFills(t, hFill(5, 1), exps)
+    checkExpectedUIntSlice(t, hFill(5, 1), exps)
 }
 
 func TestHFill53(t *testing.T) {
@@ -56,12 +56,12 @@ func TestHFill53(t *testing.T) {
         {2, 2, 1},
         {3, 1, 1},
     }
-    checkFills(t, hFill(5, 3), exps)
+    checkExpectedUIntSlice(t, hFill(5, 3), exps)
 }
 
 func TestXFill51(t *testing.T) {
     exps := [][]uint{}
-    checkFills(t, xFill(5, 1), exps)
+    checkExpectedUIntSlice(t, xFill(5, 1), exps)
 }
 
 func TestXFill52(t *testing.T) {
@@ -73,7 +73,7 @@ func TestXFill52(t *testing.T) {
         {4, 1},
         {5, 0},
     }
-    checkFills(t, xFill(5, 2), exps)
+    checkExpectedUIntSlice(t, xFill(5, 2), exps)
 }
 
 func TestXFill53(t *testing.T) {
@@ -94,7 +94,7 @@ func TestXFill53(t *testing.T) {
         {3, 1, 1},
         {4, 1, 0},
     }
-    checkFills(t, xFill(5, 3), exps)
+    checkExpectedUIntSlice(t, xFill(5, 3), exps)
 }
 
 func TestBlend2(t *testing.T) {
@@ -109,3 +109,23 @@ func TestBlend2(t *testing.T) {
     }
 }
 
+func TestPicrPermute(t *testing.T) {
+    exps := [][]uint{
+        {0, 2, 5, 3, 0},
+        {0, 2, 4, 3, 1},
+        {0, 2, 3, 3, 2},
+        {0, 2, 2, 3, 3},
+        {0, 2, 1, 3, 4},
+        {1, 2, 4, 3, 0},
+        {1, 2, 3, 3, 1},
+        {1, 2, 2, 3, 2},
+        {1, 2, 1, 3, 3},
+        {2, 2, 3, 3, 0},
+        {2, 2, 2, 3, 1},
+        {2, 2, 1, 3, 2},
+        {3, 2, 2, 3, 0},
+        {3, 2, 1, 3, 1},
+        {4, 2, 1, 3, 0},
+    }
+    checkExpectedUIntSlice(t, picrPermute(10, []uint{2, 3}), exps)
+}

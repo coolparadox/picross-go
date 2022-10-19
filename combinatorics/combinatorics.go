@@ -2,6 +2,33 @@
 // puzzles.
 package combinatorics
 
+// picrPermute returns a channel that provides all combinations of a single row (of a picross puzzle),
+// `size` positions wide, that honor a `clue` of the run lenghts of the sequential marked pixels of the row.
+// Each element of the answer is a slice of run lengths representing:
+// the first sequence of empty pixels,
+// the first sequence of marked pixels,
+// the next sequence of empty pixels,
+// and so on.
+func picrPermute(size uint, clue []uint) chan []uint {
+    var clueSum uint
+    for _, v := range clue {
+        clueSum += v
+    }
+    ans := make(chan []uint)
+    if size < clueSum {
+        close(ans)
+        return ans
+    }
+    go func() {
+        gaps_ch := xFill(size-clueSum, uint(len(clue))+1)
+        for gaps := range gaps_ch {
+            ans <- append(gaps[:1], blend2(clue, gaps[1:])...)
+        }
+        close(ans)
+    }()
+    return ans
+}
+
 // blend2 returns a slice whose first element is the first element of `as`,
 // the second element is the first element of `bs`,
 // the third element is the second element of `as` and so on.
@@ -19,7 +46,7 @@ func blend2(as []uint, bs []uint) []uint {
         ans[idx] = bs[i]; idx++
     }
     if idx != len(as)+len(bs) {
-        panic("blend2: panic: bad logic")
+        panic("blend2: error: bad logic")
     }
     return ans
 }
@@ -81,9 +108,9 @@ func hFill(sum uint, count uint) chan []uint {
             return
         }
         for last := uint(1); last <= sum-(count-1) ; last++ {
-            predecessors := hFill(sum-last, count-1)
-            for predecessor := range predecessors {
-                ans <- append(predecessor, last)
+            fronts := hFill(sum-last, count-1)
+            for front := range fronts {
+                ans <- append(front, last)
             }
         }
         close(ans)
