@@ -2,16 +2,30 @@
 // puzzles.
 package combinatorics
 
-// picr2Map converts gap-and-fill length runs
+// mapPermute returns a channel that provides all combinations of a single row (of a picross puzzle),
+// `size` positions wide, that honor a `clue` of the run lenghts of the sequential marked pixels of the row.
+// Each element of the answer is a bitmap of the row,
+// where 'true' denotates a marked position
+// and 'false' a gap.
+func mapPermute(size uint, clue []uint) chan []bool {
+    ans := make(chan []bool)
+    go func() {
+        picrs := picrPermute(size, clue)
+        for picr := range picrs {
+            ans <- picr2Map(size, picr)
+        }
+        close(ans)
+    }()
+    return ans
+}
+
+// picr2Map converts gap-and-fill `lengths`
 // (such as produced by picrPermute) to a bitmap representation.
-func picr2Map(lengths []uint) []bool {
-    var lengthSum uint
-    for _, length := range lengths {
-        lengthSum += length
-    }
+// `size` is the amount of positions of the row.
+func picr2Map(size uint, lengths []uint) []bool {
     var idx uint
     var pen bool
-    ans := make([]bool, lengthSum)
+    ans := make([]bool, size)
     for _, length := range lengths {
         for i := uint(0); i < length; i++ {
             ans[idx] = pen

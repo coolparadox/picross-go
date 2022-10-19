@@ -16,25 +16,25 @@ func are_slices_equal[K comparable](as []K, bs []K) bool {
     return true
 }
 
-func uint_slice_in_slice(elm []uint, source [][]uint) bool {
+func is_slice_in_slice[K comparable](elm []K, source [][]K) bool {
     for _, e := range source {
-        if are_slices_equal[uint](e, elm) {
+        if are_slices_equal[K](e, elm) {
             return true
         }
     }
     return false
 }
 
-func checkExpectedUIntSlice(t *testing.T, ch chan []uint, exps [][]uint) {
-    fills := [][]uint{}
+func checkExpectedSlices[K comparable](t *testing.T, ch chan []K, exps [][]K) {
+    fills := [][]K{}
     for fill := range ch {
-        if !uint_slice_in_slice(fill, exps) {
+        if !is_slice_in_slice[K](fill, exps) {
             t.Errorf(`unexpected element found: %v`, fill)
         }
         fills = append(fills, fill)
     }
     for _, exp := range exps {
-        if !uint_slice_in_slice(exp, fills) {
+        if !is_slice_in_slice[K](exp, fills) {
             t.Errorf(`expected element not found: %v`, exp)
         }
     }
@@ -44,7 +44,7 @@ func TestHFill51(t *testing.T) {
     exps := [][]uint{
         {5},
     }
-    checkExpectedUIntSlice(t, hFill(5, 1), exps)
+    checkExpectedSlices[uint](t, hFill(5, 1), exps)
 }
 
 func TestHFill53(t *testing.T) {
@@ -56,12 +56,12 @@ func TestHFill53(t *testing.T) {
         {2, 2, 1},
         {3, 1, 1},
     }
-    checkExpectedUIntSlice(t, hFill(5, 3), exps)
+    checkExpectedSlices[uint](t, hFill(5, 3), exps)
 }
 
 func TestXFill51(t *testing.T) {
     exps := [][]uint{}
-    checkExpectedUIntSlice(t, xFill(5, 1), exps)
+    checkExpectedSlices[uint](t, xFill(5, 1), exps)
 }
 
 func TestXFill52(t *testing.T) {
@@ -73,7 +73,7 @@ func TestXFill52(t *testing.T) {
         {4, 1},
         {5, 0},
     }
-    checkExpectedUIntSlice(t, xFill(5, 2), exps)
+    checkExpectedSlices[uint](t, xFill(5, 2), exps)
 }
 
 func TestXFill53(t *testing.T) {
@@ -94,7 +94,7 @@ func TestXFill53(t *testing.T) {
         {3, 1, 1},
         {4, 1, 0},
     }
-    checkExpectedUIntSlice(t, xFill(5, 3), exps)
+    checkExpectedSlices[uint](t, xFill(5, 3), exps)
 }
 
 func TestBlend2(t *testing.T) {
@@ -127,14 +127,23 @@ func TestPicrPermute(t *testing.T) {
         {3, 2, 1, 3, 1},
         {4, 2, 1, 3, 0},
     }
-    checkExpectedUIntSlice(t, picrPermute(10, []uint{2, 3}), exps)
+    checkExpectedSlices[uint](t, picrPermute(10, []uint{2, 3}), exps)
 }
 
 func TestPicr2Map(t *testing.T) {
     expected := []bool{false, true, true, true, false, false, true, true}
-    got := picr2Map([]uint{1, 3, 2, 2, 0})
+    got := picr2Map(8, []uint{1, 3, 2, 2, 0})
     if !are_slices_equal[bool](got, expected) {
         t.Errorf(`mismatch: got %v, expected %v`, got, expected)
     }
+}
+
+func TestMapPermute(t *testing.T) {
+    exps := [][]bool{
+        {true, true, false, false, true},
+        {true, true, false, true, false},
+        {false, true, true, false, true},
+    }
+    checkExpectedSlices[bool](t, mapPermute(5, []uint{2, 1}), exps)
 }
 
