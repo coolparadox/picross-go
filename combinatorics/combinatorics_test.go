@@ -4,7 +4,7 @@ import (
     "testing"
 )
 
-func uint_slices_equal(as []uint, bs []uint) bool {
+func are_slices_equal[K comparable](as []K, bs []K) bool {
     if len(as) != len(bs) {
         return false
     }
@@ -18,7 +18,7 @@ func uint_slices_equal(as []uint, bs []uint) bool {
 
 func uint_slice_in_slice(elm []uint, source [][]uint) bool {
     for _, e := range source {
-        if uint_slices_equal(e, elm) {
+        if are_slices_equal[uint](e, elm) {
             return true
         }
     }
@@ -98,13 +98,13 @@ func TestXFill53(t *testing.T) {
 }
 
 func TestBlend2(t *testing.T) {
-    if !uint_slices_equal(blend2([]uint{10,11}, []uint{20,21}), []uint{10,20,11,21}) {
+    if !are_slices_equal[uint](blend2([]uint{10,11}, []uint{20,21}), []uint{10,20,11,21}) {
         t.Errorf(`mismatch`)
     }
-    if !uint_slices_equal(blend2([]uint{10}, []uint{20,21}), []uint{10,20,21}) {
+    if !are_slices_equal[uint](blend2([]uint{10}, []uint{20,21}), []uint{10,20,21}) {
         t.Errorf(`mismatch`)
     }
-    if !uint_slices_equal(blend2([]uint{10,11}, []uint{20}), []uint{10,20,11}) {
+    if !are_slices_equal[uint](blend2([]uint{10,11}, []uint{20}), []uint{10,20,11}) {
         t.Errorf(`mismatch`)
     }
 }
@@ -129,3 +129,12 @@ func TestPicrPermute(t *testing.T) {
     }
     checkExpectedUIntSlice(t, picrPermute(10, []uint{2, 3}), exps)
 }
+
+func TestPicr2Map(t *testing.T) {
+    expected := []bool{false, true, true, true, false, false, true, true}
+    got := picr2Map([]uint{1, 3, 2, 2, 0})
+    if !are_slices_equal[bool](got, expected) {
+        t.Errorf(`mismatch: got %v, expected %v`, got, expected)
+    }
+}
+
