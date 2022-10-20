@@ -1,10 +1,10 @@
-package combinatorics
+package picross
 
 import (
     "testing"
 )
 
-func are_slices_equal[K comparable](as []K, bs []K) bool {
+func areSlicesEqual[K comparable](as []K, bs []K) bool {
     if len(as) != len(bs) {
         return false
     }
@@ -16,9 +16,9 @@ func are_slices_equal[K comparable](as []K, bs []K) bool {
     return true
 }
 
-func is_slice_in_slice[K comparable](elm []K, source [][]K) bool {
+func isSliceInSlice[K comparable](elm []K, source [][]K) bool {
     for _, e := range source {
-        if are_slices_equal[K](e, elm) {
+        if areSlicesEqual[K](e, elm) {
             return true
         }
     }
@@ -28,13 +28,13 @@ func is_slice_in_slice[K comparable](elm []K, source [][]K) bool {
 func checkExpectedSlices[K comparable](t *testing.T, ch chan []K, exps [][]K) {
     fills := [][]K{}
     for fill := range ch {
-        if !is_slice_in_slice[K](fill, exps) {
+        if !isSliceInSlice[K](fill, exps) {
             t.Errorf(`unexpected element found: %v`, fill)
         }
         fills = append(fills, fill)
     }
     for _, exp := range exps {
-        if !is_slice_in_slice[K](exp, fills) {
+        if !isSliceInSlice[K](exp, fills) {
             t.Errorf(`expected element not found: %v`, exp)
         }
     }
@@ -98,13 +98,13 @@ func TestXFill53(t *testing.T) {
 }
 
 func TestBlend2(t *testing.T) {
-    if !are_slices_equal[uint](blend2([]uint{10,11}, []uint{20,21}), []uint{10,20,11,21}) {
+    if !areSlicesEqual[uint](blend2([]uint{10,11}, []uint{20,21}), []uint{10,20,11,21}) {
         t.Errorf(`mismatch`)
     }
-    if !are_slices_equal[uint](blend2([]uint{10}, []uint{20,21}), []uint{10,20,21}) {
+    if !areSlicesEqual[uint](blend2([]uint{10}, []uint{20,21}), []uint{10,20,21}) {
         t.Errorf(`mismatch`)
     }
-    if !are_slices_equal[uint](blend2([]uint{10,11}, []uint{20}), []uint{10,20,11}) {
+    if !areSlicesEqual[uint](blend2([]uint{10,11}, []uint{20}), []uint{10,20,11}) {
         t.Errorf(`mismatch`)
     }
 }
@@ -133,7 +133,7 @@ func TestPicrPermute(t *testing.T) {
 func TestPicr2Map(t *testing.T) {
     expected := []bool{false, true, true, true, false, false, true, true}
     got := picr2Map(8, []uint{1, 3, 2, 2, 0})
-    if !are_slices_equal[bool](got, expected) {
+    if !areSlicesEqual[bool](got, expected) {
         t.Errorf(`mismatch: got %v, expected %v`, got, expected)
     }
 }

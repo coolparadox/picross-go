@@ -1,6 +1,4 @@
-// Package combinatorics offers free functions for brute-force approaches towards solving picross
-// puzzles.
-package combinatorics
+package picross
 
 // mapPermute returns a channel that provides all combinations of a single row (of a picross puzzle),
 // `size` positions wide, that honor a `clue` of the run lenghts of the sequential marked pixels of the row.
