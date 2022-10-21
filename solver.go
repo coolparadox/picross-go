@@ -24,18 +24,37 @@ func (c CellState) String() string {
     return "(error: unexpected)"
 }
 
+// PicrWorker handles a single row (column) of a picross puzzle.
 type PicrWorker struct {
     clue []uint
+    hint []CellState
 }
 
-func NewPicrWorker(clue []uint) *PicrWorker {
-    return &PicrWorker{clue: clue}
+func NewPicrWorker(depth uint, clue []uint) *PicrWorker {
+    return &PicrWorker{clue: clue, hint: make([]CellState, depth)}
 }
 
 // emerge tries to detail a starting `hint` of the known state of a picross row (or column).
 // The returned new state, when different than the input, contains less 'Any' values.
 func (w *PicrWorker) emerge(hint []CellState) ([]CellState, error) {
-    size := uint(len(hint))
+    if len(hint) != len(w.hint) {
+        panic("mismatched hint length")
+    }
+    for i, v := range hint {
+        if v == Any || w.hint[i] == Any {
+            continue
+        }
+        if v != w.hint[i] {
+            return []CellState{}, errors.New("nonsense hint")
+        }
+    }
+    for i, v := range hint {
+        if v == Any {
+            continue
+        }
+        w.hint[i] = v
+    }
+    size := uint(len(w.hint))
     initialized := false
     pivot := make([]bool, size)
     dirty := make([]bool, size)
@@ -43,7 +62,7 @@ func (w *PicrWorker) emerge(hint []CellState) ([]CellState, error) {
 emergeHintPermutations:
     for permutation := range permutations {
         for i, v := range permutation {
-            oldCellState := hint[i]
+            oldCellState := w.hint[i]
             if (v && oldCellState == Gap) || (!v && oldCellState == Fill) {
                 continue emergeHintPermutations
             }
@@ -60,7 +79,7 @@ emergeHintPermutations:
         }
     }
     if !initialized {
-        return []CellState{}, errors.New("unsolvable")
+        return []CellState{}, errors.New("no solution")
     }
     ans := make([]CellState, size)
     for i, v := range pivot {
@@ -73,6 +92,7 @@ emergeHintPermutations:
         }
         ans[i] = Gap
     }
+    copy(w.hint, ans)
     return ans, nil
 }
 
