@@ -31,12 +31,16 @@ type PicrWorker struct {
 }
 
 func NewPicrWorker(depth uint, clue []uint) *PicrWorker {
-    return &PicrWorker{clue: clue, hint: make([]CellState, depth)}
+    return &PicrWorker{clue:clue, hint:make([]CellState, depth)}
 }
 
-// emerge tries to detail a starting `hint` of the known state of a picross row (or column).
+func (w *PicrWorker) getHint() []CellState {
+    return w.hint
+}
+
+// work tries to detail a starting `hint` of the known state of a picross row (or column).
 // The returned new state, when different than the input, contains less 'Any' values.
-func (w *PicrWorker) emerge(hint []CellState) ([]CellState, error) {
+func (w *PicrWorker) work(hint []CellState) error {
     if len(hint) != len(w.hint) {
         panic("mismatched hint length")
     }
@@ -45,7 +49,7 @@ func (w *PicrWorker) emerge(hint []CellState) ([]CellState, error) {
             continue
         }
         if v != w.hint[i] {
-            return []CellState{}, errors.New("nonsense hint")
+            return errors.New("nonsense hint")
         }
     }
     for i, v := range hint {
@@ -79,20 +83,55 @@ emergeHintPermutations:
         }
     }
     if !initialized {
-        return []CellState{}, errors.New("no solution")
+        return errors.New("no solution")
     }
-    ans := make([]CellState, size)
     for i, v := range pivot {
         if dirty[i] {
             continue
         }
         if v {
-            ans[i] = Fill
+            w.hint[i] = Fill
             continue
         }
-        ans[i] = Gap
+        w.hint[i] = Gap
     }
-    copy(w.hint, ans)
-    return ans, nil
+    return nil
+}
+
+type PicrAxis struct {
+    workers []*PicrWorker
+}
+
+func NewPicrAxis(depth uint, clues[][]uint) *PicrAxis {
+    workers := make([]*PicrWorker, len(clues))
+    for i, clue := range clues {
+        workers[i] = NewPicrWorker(depth, clue)
+    }
+    return &PicrAxis{workers:workers}
+}
+
+func (a *PicrAxis) getHint() [][]CellState {
+    ans := make([][]CellState, len(a.workers))
+    for i, w := range a.workers {
+        ans[i] = w.getHint()
+    }
+    return ans
+}
+
+func (a *PicrAxis) work(hint [][]CellState) error {
+    if len(hint) != len(a.workers) {
+        panic("hint length mismatch")
+    }
+    errs := make([]error, len(a.workers))
+    for i, w := range a.workers {
+        errs[i] = w.work(hint[i])
+    }
+    for _, err := range errs {
+        if err == nil {
+            continue
+        }
+        return err
+    }
+    return nil
 }
 
