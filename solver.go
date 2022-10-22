@@ -2,7 +2,8 @@ package picross
 
 import (
     "errors"
-    "sync"
+
+    "golang.org/x/sync/errgroup"
 )
 
 type CellState uint
@@ -123,23 +124,12 @@ func (a *PicrAxis) work(hint [][]CellState) error {
     if len(hint) != len(a.workers) {
         panic("hint length mismatch")
     }
-    errs := make([]error, len(a.workers))
-    var wg sync.WaitGroup
-    wg.Add(len(a.workers))
+    g := new(errgroup.Group)
     for i, w := range a.workers {
         i := i
-        go func() {
-            defer wg.Done()
-            errs[i] = w.work(hint[i])
-        }()
+        w := w
+        g.Go(func() error { return w.work(hint[i]) })
     }
-    wg.Wait()
-    for _, err := range errs {
-        if err == nil {
-            continue
-        }
-        return err
-    }
-    return nil
+    return g.Wait()
 }
 
