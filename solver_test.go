@@ -1,40 +1,267 @@
 package picross
 
 import (
-    "testing"
+	"fmt"
+	"testing"
 )
 
-func checkPicrWorker(t *testing.T, w *PicrWorker, input []CellState, expV []CellState) {
-    e := w.work(input)
-    if (e != nil) {
-        t.Errorf("unexpected error: %v", e)
-    }
-    if !areSlicesEqual[CellState](w.getHint(), expV) {
-        t.Errorf("unexpected value: expected %v, got %v", expV, w.getHint())
-    }
+func checkPicrWorker(t *testing.T, depth uint, clue []uint, input []CellState, expV []CellState) {
+	w, e := NewPicrWorker(depth, clue)
+	if e != nil {
+		t.Errorf(`PicrWorker creation failed: %v`, e)
+		return
+	}
+	e = w.work(input)
+	if e != nil {
+		t.Errorf("unexpected error: %v", e)
+		return
+	}
+	if !areSlicesEqual[CellState](w.getHint(), expV) {
+		t.Errorf("unexpected value: expected %v, got %v", expV, w.getHint())
+		return
+	}
 }
 
 func TestPicrWorker(t *testing.T) {
-    checkPicrWorker(t, NewPicrWorker(4, []uint{3}), []CellState{Any, Any, Any, Any}, []CellState{Any, Fill, Fill, Any})
-    checkPicrWorker(t, NewPicrWorker(4, []uint{3}), []CellState{Gap, Any, Any, Any}, []CellState{Gap, Fill, Fill, Fill})
-    checkPicrWorker(t, NewPicrWorker(4, []uint{3}), []CellState{Fill, Any, Any, Any}, []CellState{Fill, Fill, Fill, Gap})
-    if (NewPicrWorker(4, []uint{3}).work([]CellState{Any, Gap, Any, Any}) == nil) {
-        t.Errorf("unexpected success")
-    }
+	if _, e := NewPicrWorker(0, []uint{1}); e == nil {
+		t.Errorf(`unexpected success`)
+	}
+	checkPicrWorker(t, 3, []uint{}, []CellState{Any, Any, Any}, []CellState{Gap, Gap, Gap})
+	checkPicrWorker(t, 3, []uint{3}, []CellState{Any, Any, Any}, []CellState{Fill, Fill, Fill})
+	checkPicrWorker(t, 4, []uint{3}, []CellState{Any, Any, Any, Any}, []CellState{Any, Fill, Fill, Any})
+	checkPicrWorker(t, 4, []uint{3}, []CellState{Gap, Any, Any, Any}, []CellState{Gap, Fill, Fill, Fill})
+	checkPicrWorker(t, 4, []uint{3}, []CellState{Fill, Any, Any, Any}, []CellState{Fill, Fill, Fill, Gap})
+	if w, _ := NewPicrWorker(4, []uint{3}); w.work([]CellState{Any, Gap, Any, Any}) == nil {
+		t.Errorf("unexpected success")
+	}
 }
 
 func TestPicrAxis(t *testing.T) {
-    a := NewPicrAxis(4, [][]uint{{3}})
-    if e := a.work([][]CellState{{Gap, Any, Any, Any}}); e != nil {
-        t.Fatalf("unexpected error: %v", e)
-    }
-    got := a.getHint()
-    if len(got) != 1 {
-        t.Fatalf("length mismatch: expected 1, got %v", len(got))
-    }
-    expected := []CellState{Gap, Fill, Fill, Fill}
-    if !areSlicesEqual[CellState](got[0], expected) {
-        t.Errorf("value mismatch: expected %v, got %v", expected, got[0])
-    }
+	a, e := NewPicrAxis(4, [][]uint{{3}})
+	if e != nil {
+		t.Fatalf(`%v`, e)
+	}
+	if e = a.work([][]CellState{{Gap, Any, Any, Any}}); e != nil {
+		t.Fatalf("unexpected error: %v", e)
+	}
+	got := a.getHint()
+	if len(got) != 1 {
+		t.Fatalf("length mismatch: expected 1, got %v", len(got))
+	}
+	expected := []CellState{Gap, Fill, Fill, Fill}
+	if !areSlicesEqual[CellState](got[0], expected) {
+		t.Errorf("value mismatch: expected %v, got %v", expected, got[0])
+	}
 }
 
+func areSlices2Equal[K comparable](as [][]K, bs [][]K) bool {
+	if len(as) != len(bs) {
+		return false
+	}
+	for i, a := range as {
+		if areSlicesEqual(a, bs[i]) {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func TestPicrTranspose(t *testing.T) {
+	input := [][]CellState{[]CellState{Any, Fill, Gap}, []CellState{Fill, Gap, Any}}
+	expected := [][]CellState{[]CellState{Any, Fill}, []CellState{Fill, Gap}, []CellState{Gap, Any}}
+	got := picrTranspose(input)
+	if !areSlices2Equal(expected, got) {
+		t.Errorf("unexpected result: expected %v, got %v", expected, got)
+	}
+}
+
+func TestPicrCountAny(t *testing.T) {
+	input := [][]CellState{[]CellState{Any, Fill, Gap}, []CellState{Fill, Gap, Any}}
+	expected := uint(2)
+	got := picrCountAny(input)
+	if expected != got {
+		t.Errorf("unexpected result: expected %v, got %v", expected, got)
+	}
+}
+
+func TestNewPicrSolver(t *testing.T) {
+	if _, e := NewPicrSolver([][]uint{}, [][]uint{}); e == nil {
+		t.Fatalf("unexpected success")
+	}
+	if _, e := NewPicrSolver([][]uint{{1}}, [][]uint{}); e == nil {
+		t.Fatalf("unexpected success")
+	}
+	if _, e := NewPicrSolver([][]uint{}, [][]uint{{1}}); e == nil {
+		t.Fatalf("unexpected success")
+	}
+	if _, e := NewPicrSolver([][]uint{{1}}, [][]uint{{1}}); e != nil {
+		t.Fatalf("unexpected failure")
+	}
+}
+
+func checkPicrSolverFail(t *testing.T, rowClues [][]uint, colClues [][]uint) {
+	s, _ := NewPicrSolver(rowClues, colClues)
+	if s.solve() == nil {
+		t.Fatalf(`unexpected success`)
+	}
+}
+
+func TestPicrSolverSolveFail(t *testing.T) {
+	checkPicrSolverFail(t, [][]uint{{0}}, [][]uint{{1}})
+	checkPicrSolverFail(t, [][]uint{{1}}, [][]uint{{0}})
+	checkPicrSolverFail(t, [][]uint{{1}}, [][]uint{{2}})
+	checkPicrSolverFail(t, [][]uint{{2}}, [][]uint{{1}})
+	checkPicrSolverFail(t, [][]uint{{1}, {1}}, [][]uint{{1}, {1}})
+	checkPicrSolverFail(t, [][]uint{{1}, {2}}, [][]uint{{2}, {2}})
+	checkPicrSolverFail(t, [][]uint{{2}, {1}}, [][]uint{{2}, {2}})
+	checkPicrSolverFail(t, [][]uint{{2}, {2}}, [][]uint{{1}, {2}})
+	checkPicrSolverFail(t, [][]uint{{2}, {2}}, [][]uint{{2}, {1}})
+}
+
+func checkPicrSolver(t *testing.T, rowClues [][]uint, colClues [][]uint, expOut [][]CellState) {
+	solver, err := NewPicrSolver(rowClues, colClues)
+	if err != nil {
+		t.Fatalf(`%v`, err)
+	}
+	err = solver.solve()
+	if err != nil {
+		t.Fatalf(`unexpected error for row clues %v and col clues %v: %v`, rowClues, colClues, err)
+	}
+	got := solver.getState()
+	if !areSlices2Equal(expOut, got) {
+		t.Fatalf(`result mismatch for row clues %v and col clues %v: expected %v, got %v`, rowClues, colClues, expOut, got)
+	}
+}
+
+func printMap(m [][]CellState) {
+	fmt.Println("")
+	for _, row := range m {
+		for _, v := range row {
+			switch v {
+			case Any:
+				fmt.Printf("?")
+			case Gap:
+				fmt.Printf(".")
+			case Fill:
+				fmt.Printf("#")
+			}
+		}
+		fmt.Println("")
+	}
+}
+
+func str2Map(s string) [][]CellState {
+	ans := make([][]CellState, 0)
+	var row []CellState
+	for _, c := range s {
+		if row == nil {
+			row = make([]CellState, 0)
+		}
+		if c == ' ' {
+			continue
+		}
+		if c == '.' {
+			row = append(row, Gap)
+			continue
+		}
+		if c == '#' {
+			row = append(row, Fill)
+			continue
+		}
+		if c == '\n' {
+			ans = append(ans, row)
+			row = make([]CellState, 0)
+			continue
+		}
+		panic(`unknown rune`)
+	}
+	ans = append(ans, row)
+	return ans
+}
+
+func TestPicrSolver22Fill(t *testing.T) {
+	// 2x2 Fill
+	checkPicrSolver(t,
+		[][]uint{{2}, {2}},
+		[][]uint{{2}, {2}},
+		str2Map(`##
+                 ##`))
+}
+
+func TestPicrSolver55Horse(t *testing.T) {
+	// 5x5 horse
+	checkPicrSolver(t,
+		[][]uint{{3}, {1, 1}, {4}, {3}, {1, 1}},
+		[][]uint{{1}, {5}, {1, 2}, {3}, {2}},
+		str2Map(`###..
+                 .#..#
+                 .####
+                 .###.
+                 .#.#.`))
+}
+
+func TestPicrSolverNonSquare(t *testing.T) {
+	// A non-square puzzle
+	checkPicrSolver(t,
+		[][]uint{{3, 2, 2}, {3, 1, 1}, {4, 4}, {2, 1, 1, 1}},
+		[][]uint{{4}, {4}, {3}, {2}, {1}, {1, 1}, {1, 1}, {1}, {1, 1}, {4}},
+		str2Map(`###..##.##
+                 ###.#....#
+                 ####..####
+                 ##.#.#...#`))
+}
+
+func TestPicrSolver1515Duck(t *testing.T) {
+	// 15x15 duck
+	checkPicrSolver(t,
+		[][]uint{{3}, {5}, {4, 3}, {7}, {5}, {3}, {5}, {1, 8}, {3, 3, 3}, {7, 3, 2}, {5, 4, 2}, {8, 2}, {10}, {2, 3}, {6}},
+		[][]uint{{3}, {4}, {5}, {4}, {5}, {6}, {3, 2, 1}, {2, 2, 5}, {4, 2, 6}, {8, 2, 3}, {8, 2, 1, 1}, {2, 6, 2, 1}, {4, 6}, {2, 4}, {1}},
+		str2Map(`.........###...
+                 ........#####..
+                 .......####.###
+                 .......#######.
+                 ........#####..
+                 .........###...
+                 ........#####..
+                 #.....########.
+                 ###..###...###.
+                 #######.###.##.
+                 .#####.####.##.
+                 .########..##..
+                 ..##########...
+                 ....##.###.....
+                 ......######...`))
+}
+
+func TestPicrSolver2525Owl(t *testing.T) {
+	// 25x25 owl
+	checkPicrSolver(t,
+		[][]uint{{3, 8, 3}, {23}, {3, 6, 3}, {7, 4, 7}, {2, 3, 2, 3, 4}, {2, 2, 2, 2, 2}, {1, 1, 1, 1, 2, 1, 1, 1, 2}, {1, 4, 2, 3, 4, 2}, {1, 3, 2, 1, 1, 2, 3, 1}, {1, 1, 2, 1, 1, 1, 1, 2, 1, 1}, {1, 2, 2, 1, 1, 1, 1, 2, 2, 1}, {1, 2, 2, 1, 1, 2, 2, 2}, {1, 4, 1, 1, 1, 4, 2}, {2, 1, 1, 2, 3, 1, 1, 1, 3}, {3, 2, 5, 1, 2}, {6, 5, 6}, {1, 3, 3, 1}, {3, 1, 2}, {3, 3}, {3, 3, 2, 4, 2}, {7, 11, 1}, {1, 5, 4, 1}, {1, 4, 4, 1}, {1, 17, 1}, {3, 5, 5, 3}},
+		[][]uint{{1, 9, 2, 4}, {2, 3, 2, 2, 1}, {2, 2, 1, 1, 1, 3, 1, 1}, {3, 4, 2, 3, 1}, {3, 3, 3, 2, 2, 2}, {3, 1, 2, 1, 2, 1, 2}, {1, 2, 2, 2, 2, 2, 2, 2}, {1, 3, 2, 2, 2, 2, 2}, {2, 2, 4, 3, 3, 2}, {3, 2, 2, 2, 2}, {4, 5, 2, 1, 2}, {7, 4, 2, 1}, {8, 6, 3, 1}, {4, 5, 4, 2, 1}, {3, 3, 1, 2, 2, 2}, {2, 2, 4, 1, 3, 2}, {1, 2, 2, 2, 2, 3, 2}, {1, 2, 2, 2, 2, 1, 3, 2}, {3, 1, 2, 1, 1, 2, 2}, {3, 3, 3, 1, 1, 2}, {4, 4, 1, 1, 2}, {1, 2, 1, 1, 2, 2, 1}, {2, 3, 2, 2, 1, 1}, {2, 4, 3, 2, 1}, {1, 8, 3, 5}},
+		str2Map(`###.....########......###
+                 .#######################.
+                 ...###...######...###....
+                 .#######..####..#######..
+                 .##...###..##..###..####.
+                 ##.....##..##.##......##.
+                 #...#.#..#.##.#..#.#...##
+                 #...####.##.###.####...##
+                 #.###..##.#..#.##..###..#
+                 #..#.##.#.#..#.#.##.#...#
+                 #.##.##.#.#..#.#.##.##..#
+                 #..##..##.#..#.##..##..##
+                 #...####.#..#.#.####...##
+                 ##..#.#.##.###.#.#.#..###
+                 .###...##.#####.#....##..
+                 ...######.#####.######...
+                 #...###....###..........#
+                 ###.........#..........##
+                 .###..................###
+                 ..###.###...##.####..##..
+                 ...#######.###########..#
+                 #.......#####.####......#
+                 #.####.............####.#
+                 #...#################...#
+                 ###...#####...#####...###`))
+}
