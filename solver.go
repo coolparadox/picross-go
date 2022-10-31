@@ -28,8 +28,9 @@ func (c CellState) String() string {
 
 // PicrWorker handles a single row (column) of a picross puzzle.
 type PicrWorker struct {
-	clue []uint
-	hint []CellState
+	isPrimed bool
+	clue     []uint
+	hint     []CellState
 }
 
 func NewPicrWorker(depth uint, clue []uint) (*PicrWorker, error) {
@@ -57,12 +58,20 @@ func (w *PicrWorker) work(hint []CellState) error {
 			return errors.New("PicrWorker: nonsense hint")
 		}
 	}
+	anyChange := false
 	for i, v := range hint {
 		if v == Any {
 			continue
 		}
+		if w.hint[i] != v {
+			anyChange = true
+		}
 		w.hint[i] = v
 	}
+	if !anyChange && w.isPrimed {
+		return nil
+	}
+	w.isPrimed = true
 	size := uint(len(w.hint))
 	initialized := false
 	pivot := make([]bool, size)
