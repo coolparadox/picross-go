@@ -130,29 +130,33 @@ func xFill(sum uint, count uint) chan []uint {
 
 // hFill returns a channel that provides all combinations of integer numbers where
 // the sum of all elements is `sum`,
-// the amount of elements is `count`,
+// the amount of elements is `size`,
 // and each element is equal or greater than 1.
-func hFill(sum uint, count uint) chan []uint {
+func hFill(sum uint, size uint) chan []uint {
 	ans := make(chan []uint)
-	if count < 1 || sum < count {
+	if size < 1 || sum < size {
 		close(ans)
 		return ans
 	}
-	go func() {
-		if count == 1 {
-			elm := make([]uint, 1)
-			elm[0] = sum
-			ans <- elm
-			close(ans)
-			return
-		}
-		for last := uint(1); last <= sum-(count-1); last++ {
-			fronts := hFill(sum-last, count-1)
-			for front := range fronts {
-				ans <- append(front, last)
-			}
-		}
-		close(ans)
-	}()
-	return ans
+    buf := make([]uint, size)
+    var it func(uint, uint)
+    it = func(sum uint, idx uint) {
+        if idx == size-1 {
+            buf[idx] = sum
+            elem := make([]uint, size)
+            copy(elem, buf)
+            ans <- elem
+            return
+        }
+        for v := uint(1); v <= sum+idx+1-size; v++ {
+            v := v
+            buf[idx] = v
+            it(sum-v, idx+1)
+        }
+    }
+    go func() {
+        it(sum, 0)
+        close(ans)
+    }()
+    return ans
 }
