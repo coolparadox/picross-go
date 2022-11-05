@@ -46,6 +46,7 @@ func picr2Map(size uint, lengths []uint) []bool {
 // the next sequence of empty pixels,
 // and so on.
 func picrPermute(size uint, clue []uint) chan []uint {
+    clueLen := uint(len(clue))
 	var clueSum uint
 	for _, v := range clue {
 		clueSum += v
@@ -56,10 +57,27 @@ func picrPermute(size uint, clue []uint) chan []uint {
 		return ans
 	}
 	go func() {
-		gaps_ch := xFill(size-clueSum, uint(len(clue))+1)
-		for gaps := range gaps_ch {
-			ans <- append(gaps[:1], blend2(clue, gaps[1:])...)
-		}
+        gapsLen := clueLen+1
+        gapsSum := size-clueSum
+        gaps := make([]uint, gapsLen)
+        for i := range gaps {
+            gaps[i] = 1
+        }
+        gaps[0] = 0
+        gaps[gapsLen-1] = gapsSum+2-gapsLen
+        for {
+            e := make([]uint, clueLen+gapsLen)
+            for i, v := range clue {
+                e[1+2*i] = v
+            }
+            for i, v := range gaps {
+                e[2*i] = v
+            }
+            ans <- e
+            if !gapIterate(gaps) {
+                break
+            }
+        }
 		close(ans)
 	}()
 	return ans
@@ -90,73 +108,60 @@ func blend2(as []uint, bs []uint) []uint {
 	return ans
 }
 
-// xFill returns a channel that provides all combinations of integer numbers where
+// gapCombine returns a channel that provides all combinations of integer numbers where
 // the sum of all elements is `sum`,
 // the amount of elements is `count`,
 // the amount of elements is at least 2,
 // the first and the last elements are equal or greater than 0,
 // and the remaining elements are equal or greater than 1.
-func xFill(sum uint, count uint) chan []uint {
+func gapCombine(sum uint, count uint) chan []uint {
 	ans := make(chan []uint)
 	if count < 2 || sum < count-2 {
 		close(ans)
 		return ans
 	}
-	if count == 2 {
-		go func() {
-			for head := uint(0); head <= sum; head++ {
-				elm := make([]uint, 2)
-				elm[0] = head
-				elm[1] = sum - head
-				ans <- elm
-			}
-			close(ans)
-		}()
-		return ans
-	}
-	go func() {
-		for head := uint(0); head <= sum-(count-2); head++ {
-			for last := uint(0); last <= sum-(count-2)-head; last++ {
-				middles := hFill(sum-head-last, count-2)
-				for middle := range middles {
-					ans <- append(append([]uint{head}, middle...), last)
-				}
-			}
-		}
-		close(ans)
-	}()
-	return ans
-}
-
-// hFill returns a channel that provides all combinations of integer numbers where
-// the sum of all elements is `sum`,
-// the amount of elements is `size`,
-// and each element is equal or greater than 1.
-func hFill(sum uint, size uint) chan []uint {
-	ans := make(chan []uint)
-	if size < 1 || sum < size {
-		close(ans)
-		return ans
-	}
-    buf := make([]uint, size)
-    var it func(uint, uint)
-    it = func(sum uint, idx uint) {
-        if idx == size-1 {
-            buf[idx] = sum
-            elem := make([]uint, size)
-            copy(elem, buf)
-            ans <- elem
-            return
-        }
-        for v := uint(1); v <= sum+idx+1-size; v++ {
-            v := v
-            buf[idx] = v
-            it(sum-v, idx+1)
-        }
+    buf := make([]uint, count)
+    for i := range buf {
+        buf[i] = 1
     }
+    buf[0] = 0
+    buf[count-1] = sum+2-count
     go func() {
-        it(sum, 0)
-        close(ans)
+        for {
+            e := make([]uint, count)
+            copy(e, buf)
+            ans <- e
+            if !gapIterate(buf) {
+                close(ans)
+                return
+            }
+        }
     }()
     return ans
+}
+
+func gapIterate(buf []uint) bool {
+    bufLen := uint(len(buf))
+    for i := int(bufLen)-1;; i-- {
+        if i == 0 {
+            return false
+        }
+        if i == int(bufLen)-1 {
+            if buf[i] <= 0 {
+                continue
+            }
+        } else {
+            if buf[i] <= 1 {
+                continue
+            }
+        }
+        buf[i-1] += 1
+        buf[i] -= 1
+        for j := i; j < int(bufLen)-1; j++ {
+            buf[j+1] += buf[j]-1
+            buf[j] = 1
+        }
+        break
+    }
+    return true
 }

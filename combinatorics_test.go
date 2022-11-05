@@ -40,31 +40,12 @@ func checkExpectedSlices[K comparable](t *testing.T, ch chan []K, exps [][]K) {
 	}
 }
 
-func TestHFill51(t *testing.T) {
-	exps := [][]uint{
-		{5},
-	}
-	checkExpectedSlices[uint](t, hFill(5, 1), exps)
-}
-
-func TestHFill53(t *testing.T) {
-	exps := [][]uint{
-		{1, 1, 3},
-		{1, 2, 2},
-		{1, 3, 1},
-		{2, 1, 2},
-		{2, 2, 1},
-		{3, 1, 1},
-	}
-	checkExpectedSlices[uint](t, hFill(5, 3), exps)
-}
-
-func TestXFill51(t *testing.T) {
+func TestGapCombine51(t *testing.T) {
 	exps := [][]uint{}
-	checkExpectedSlices[uint](t, xFill(5, 1), exps)
+	checkExpectedSlices[uint](t, gapCombine(5, 1), exps)
 }
 
-func TestXFill52(t *testing.T) {
+func TestGapCombine52(t *testing.T) {
 	exps := [][]uint{
 		{0, 5},
 		{1, 4},
@@ -73,10 +54,10 @@ func TestXFill52(t *testing.T) {
 		{4, 1},
 		{5, 0},
 	}
-	checkExpectedSlices[uint](t, xFill(5, 2), exps)
+	checkExpectedSlices[uint](t, gapCombine(5, 2), exps)
 }
 
-func TestXFill53(t *testing.T) {
+func TestGapCombine53(t *testing.T) {
 	exps := [][]uint{
 		{0, 5, 0},
 		{0, 4, 1},
@@ -94,7 +75,7 @@ func TestXFill53(t *testing.T) {
 		{3, 1, 1},
 		{4, 1, 0},
 	}
-	checkExpectedSlices[uint](t, xFill(5, 3), exps)
+	checkExpectedSlices[uint](t, gapCombine(5, 3), exps)
 }
 
 func TestBlend2(t *testing.T) {
