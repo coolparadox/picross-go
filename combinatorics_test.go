@@ -40,56 +40,6 @@ func checkExpectedSlices[K comparable](t *testing.T, ch chan []K, exps [][]K) {
 	}
 }
 
-func TestGapCombine51(t *testing.T) {
-	exps := [][]uint{}
-	checkExpectedSlices[uint](t, gapCombine(5, 1), exps)
-}
-
-func TestGapCombine52(t *testing.T) {
-	exps := [][]uint{
-		{0, 5},
-		{1, 4},
-		{2, 3},
-		{3, 2},
-		{4, 1},
-		{5, 0},
-	}
-	checkExpectedSlices[uint](t, gapCombine(5, 2), exps)
-}
-
-func TestGapCombine53(t *testing.T) {
-	exps := [][]uint{
-		{0, 5, 0},
-		{0, 4, 1},
-		{0, 3, 2},
-		{0, 2, 3},
-		{0, 1, 4},
-		{1, 4, 0},
-		{1, 3, 1},
-		{1, 2, 2},
-		{1, 1, 3},
-		{2, 3, 0},
-		{2, 2, 1},
-		{2, 1, 2},
-		{3, 2, 0},
-		{3, 1, 1},
-		{4, 1, 0},
-	}
-	checkExpectedSlices[uint](t, gapCombine(5, 3), exps)
-}
-
-func TestBlend2(t *testing.T) {
-	if !areSlicesEqual[uint](blend2([]uint{10, 11}, []uint{20, 21}), []uint{10, 20, 11, 21}) {
-		t.Errorf(`mismatch`)
-	}
-	if !areSlicesEqual[uint](blend2([]uint{10}, []uint{20, 21}), []uint{10, 20, 21}) {
-		t.Errorf(`mismatch`)
-	}
-	if !areSlicesEqual[uint](blend2([]uint{10, 11}, []uint{20}), []uint{10, 20, 11}) {
-		t.Errorf(`mismatch`)
-	}
-}
-
 func TestPicrPermute(t *testing.T) {
 	exps := [][]uint{
 		{0, 2, 5, 3, 0},

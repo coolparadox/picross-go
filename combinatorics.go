@@ -83,63 +83,13 @@ func picrPermute(size uint, clue []uint) chan []uint {
 	return ans
 }
 
-// blend2 returns a slice whose first element is the first element of `as`,
-// the second element is the first element of `bs`,
-// the third element is the second element of `as` and so on.
-func blend2(as []uint, bs []uint) []uint {
-	lenb := len(bs)
-	ans := make([]uint, len(as)+lenb)
-	var idx int
-	for i, a := range as {
-		ans[idx] = a
-		idx++
-		if i < lenb {
-			ans[idx] = bs[i]
-			idx++
-		}
-	}
-	for i := len(as); i < lenb; i++ {
-		ans[idx] = bs[i]
-		idx++
-	}
-	if idx != len(as)+len(bs) {
-		panic("blend2: error: bad logic")
-	}
-	return ans
-}
-
-// gapCombine returns a channel that provides all combinations of integer numbers where
-// the sum of all elements is `sum`,
-// the amount of elements is `count`,
-// the amount of elements is at least 2,
-// the first and the last elements are equal or greater than 0,
-// and the remaining elements are equal or greater than 1.
-func gapCombine(sum uint, count uint) chan []uint {
-	ans := make(chan []uint)
-	if count < 2 || sum < count-2 {
-		close(ans)
-		return ans
-	}
-    buf := make([]uint, count)
-    for i := range buf {
-        buf[i] = 1
-    }
-    buf[0] = 0
-    buf[count-1] = sum+2-count
-    go func() {
-        for {
-            e := make([]uint, count)
-            copy(e, buf)
-            ans <- e
-            if !gapIterate(buf) {
-                close(ans)
-                return
-            }
-        }
-    }()
-    return ans
-}
-
+// gapIterate takes a slice of run lenghts and in-place rearranges it so that:
+// - it has the same amount of elements,
+// - it has the same sum of elements,
+// - its first and last elements are equal or greater than zero,
+// - its remaining elements are equal or greater than one,
+// - it's the next realization from a sorted set of all combinations that honor the previous invariants.
+// Returns true on success achieving a new combination, of false otherwise.
 func gapIterate(buf []uint) bool {
     bufLen := uint(len(buf))
     for i := int(bufLen)-1;; i-- {
