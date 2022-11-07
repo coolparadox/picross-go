@@ -213,5 +213,5 @@ func (s *PicrSolver) solve() error {
 		}
 		n_unknown = n
 	}
-	return s.col.work(picrTranspose(s.row.getHint())) // FIXME: optimize: just check validity instead of working
+	return s.col.work(picrTranspose(s.row.getHint()))
 }
