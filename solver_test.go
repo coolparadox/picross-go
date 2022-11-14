@@ -6,7 +6,7 @@ import (
 )
 
 func checkPicrWorker(t *testing.T, depth uint, clue []uint, input []CellState, expV []CellState) {
-	w, e := NewPicrWorker(depth, clue)
+	w, e := NewPicrWorker(depth, clue, nil)
 	if e != nil {
 		t.Errorf(`PicrWorker creation failed: %v`, e)
 		return
@@ -23,7 +23,7 @@ func checkPicrWorker(t *testing.T, depth uint, clue []uint, input []CellState, e
 }
 
 func TestPicrWorker(t *testing.T) {
-	if _, e := NewPicrWorker(0, []uint{1}); e == nil {
+	if _, e := NewPicrWorker(0, []uint{1}, nil); e == nil {
 		t.Errorf(`unexpected success`)
 	}
 	checkPicrWorker(t, 3, []uint{}, []CellState{Any, Any, Any}, []CellState{Gap, Gap, Gap})
@@ -31,13 +31,13 @@ func TestPicrWorker(t *testing.T) {
 	checkPicrWorker(t, 4, []uint{3}, []CellState{Any, Any, Any, Any}, []CellState{Any, Fill, Fill, Any})
 	checkPicrWorker(t, 4, []uint{3}, []CellState{Gap, Any, Any, Any}, []CellState{Gap, Fill, Fill, Fill})
 	checkPicrWorker(t, 4, []uint{3}, []CellState{Fill, Any, Any, Any}, []CellState{Fill, Fill, Fill, Gap})
-	if w, _ := NewPicrWorker(4, []uint{3}); w.work([]CellState{Any, Gap, Any, Any}) == nil {
+	if w, _ := NewPicrWorker(4, []uint{3}, nil); w.work([]CellState{Any, Gap, Any, Any}) == nil {
 		t.Errorf("unexpected success")
 	}
 }
 
 func TestPicrAxis(t *testing.T) {
-	a, e := NewPicrAxis(4, [][]uint{{3}})
+	a, e := NewPicrAxis(4, [][]uint{{3}}, nil)
 	if e != nil {
 		t.Fatalf(`%v`, e)
 	}
@@ -86,22 +86,22 @@ func TestPicrCountAny(t *testing.T) {
 }
 
 func TestNewPicrSolver(t *testing.T) {
-	if _, e := NewPicrSolver([][]uint{}, [][]uint{}); e == nil {
+	if _, e := NewPicrSolver([][]uint{}, [][]uint{}, nil); e == nil {
 		t.Fatalf("unexpected success")
 	}
-	if _, e := NewPicrSolver([][]uint{{1}}, [][]uint{}); e == nil {
+	if _, e := NewPicrSolver([][]uint{{1}}, [][]uint{}, nil); e == nil {
 		t.Fatalf("unexpected success")
 	}
-	if _, e := NewPicrSolver([][]uint{}, [][]uint{{1}}); e == nil {
+	if _, e := NewPicrSolver([][]uint{}, [][]uint{{1}}, nil); e == nil {
 		t.Fatalf("unexpected success")
 	}
-	if _, e := NewPicrSolver([][]uint{{1}}, [][]uint{{1}}); e != nil {
+	if _, e := NewPicrSolver([][]uint{{1}}, [][]uint{{1}}, nil); e != nil {
 		t.Fatalf("unexpected failure")
 	}
 }
 
 func checkPicrSolverFail(t *testing.T, rowClues [][]uint, colClues [][]uint) {
-	s, _ := NewPicrSolver(rowClues, colClues)
+	s, _ := NewPicrSolver(rowClues, colClues, nil)
 	if s.solve() == nil {
 		t.Fatalf(`unexpected success`)
 	}
@@ -120,7 +120,7 @@ func TestPicrSolverSolveFail(t *testing.T) {
 }
 
 func checkPicrSolver(t *testing.T, rowClues [][]uint, colClues [][]uint, expOut [][]CellState) {
-	solver, err := NewPicrSolver(rowClues, colClues)
+	solver, err := NewPicrSolver(rowClues, colClues, nil)
 	if err != nil {
 		t.Fatalf(`%v`, err)
 	}
@@ -201,6 +201,51 @@ func TestPicrSolver55Horse(t *testing.T) {
                  .#.#.`))
 }
 
+func TestPicrSolverNotif(t *testing.T) {
+	ch := make(chan PicrSolverNotification, 25)
+	// 5x5 horse
+	solver, _ := NewPicrSolver(
+		[][]uint{{3}, {1, 1}, {4}, {3}, {1, 1}},
+		[][]uint{{1}, {5}, {1, 2}, {3}, {2}},
+		ch)
+	solver.solve()
+	got := make([]PicrSolverNotification, 0)
+testPicrSolverNotifConsumeCh:
+	for {
+		select {
+		case v := <-ch:
+			got = append(got, v)
+		default:
+			break testPicrSolverNotifConsumeCh
+		}
+	}
+	expected := []PicrSolverNotification{
+		{1, 1, true}, {1, 2, true}, {1, 3, true}, {1, 4, false}, {1, 5, false},
+		{2, 1, false}, {2, 2, true}, {2, 3, false}, {2, 4, false}, {2, 5, true},
+		{3, 1, false}, {3, 2, true}, {3, 3, true}, {3, 4, true}, {3, 5, true},
+		{4, 1, false}, {4, 2, true}, {4, 3, true}, {4, 4, true}, {4, 5, false},
+		{5, 1, false}, {5, 2, true}, {5, 3, false}, {5, 4, true}, {5, 5, false},
+	}
+testPicrSolverNotifVerifyExpected:
+	for _, v := range expected {
+		for _, w := range got {
+			if v == w {
+				continue testPicrSolverNotifVerifyExpected
+			}
+		}
+		t.Errorf(`expected notification not found: %v`, v)
+	}
+testPicrSolverNotifVerifyGot:
+	for _, v := range got {
+		for _, w := range expected {
+			if v == w {
+				continue testPicrSolverNotifVerifyGot
+			}
+		}
+		t.Errorf(`unexpected notification found: %v`, v)
+	}
+}
+
 func TestPicrSolverNonSquare(t *testing.T) {
 	// A non-square puzzle
 	checkPicrSolver(t,
@@ -270,46 +315,36 @@ func TestPicrSolver4030Peacock(t *testing.T) {
 	// 40x30 peacock
 	// https://www.nonograms.org/nonograms/i/2098
 	checkPicrSolver(t,
-	[][]uint{{4,7,1}, {5,9,1,2,1}, {7,12,3,2}, {9,3,7}, {12,8,1}, {6,7,2,2,2}, {4,5,6,7}, {3,7,3,4}, {6,4,2,4}, {3,3,3,4}, {3,4,6}, {3,3,1,5,6}, {2,2,4,1,2,2,6}, {5,1,1,2,3,12}, {9,1,14}, {2,2,2,9,5}, {2,2,1,1,11,4}, {1,1,12,4}, {13,3}, {3,8,4}, {4,6,4}, {5,6}, {11,9}, {25}, {26}, {24,3,2}, {21,2,2,2}, {16,1,1,1}, {4,4,3,3}, {1,2,3}},
-	[][]uint{{4,1}, {4,2}, {4,1,1,2}, {5,1,2,1,1,4}, {4,2,1,4,4}, {3,2,1,3,4}, {1,5,1,3,2,4}, {1,4,2,6,3}, {2,3,2,1,3,3}, {2,3,1,3,1,2,5}, {3,5,1,4,5}, {3,9,2,6}, {3,1,4,2,6}, {2,1,2,2,5}, {2,2,1,4,6}, {2,1,2,2,2,6}, {3,1,2,3,6}, {2,1,2,3,6}, {2,2,2,1,1,6}, {1,2,1,1,7}, {1,3,7}, {1,2,7}, {3,3,4}, {1,1,3,6}, {3,5}, {4,1,3}, {7,3}, {1,7,2,1}, {2,8,4,1}, {3,8,7}, {1,2,9,5,2}, {6,8,3,1}, {8,7,8}, {3,14,6,2}, {4,7,3,5,2}, {3,7,5,1}, {1,2,13}, {2,1,1,12}, {1,1,9}, {2,1,5}},
-	str2Map(`####..#######........................#..
-             #####...#########.................#.##.#
-             #######...############...........###..##
-             #########.......###............#######..
-             ...############..............########..#
-             ......######..#######.......##.##....##.
-             ....####.#####....######...#######......
-             ...###....#######...###.......####......
-             .......######..####...##.......####.....
-             ......###..###...###............####....
-             .........###.####...............######..
-             ...###.###.#..#####..............######.
-             ..##..##.####.#.##............##.######.
-             ....#####.#.#.##.###........############
-             ..#########....#..........##############
-             ....##.##.##.............#########.#####
-             ...##.##.#.#............###########.####
-             ......#..#.............############.####
-             ......................#############.###.
-             .....................###..########.####.
-             ...................####..######...####..
-             .................#####..........######..
-             ..............###########...#########...
-             ...........#########################....
-             .........##########################.....
-             ...########################.###.##......
-             #####################..##....##.##......
-             .################......#.....#..#.......
-             ...####..####...............###.###.....
-             ...........................#..##.###....`))
+		[][]uint{{4, 7, 1}, {5, 9, 1, 2, 1}, {7, 12, 3, 2}, {9, 3, 7}, {12, 8, 1}, {6, 7, 2, 2, 2}, {4, 5, 6, 7}, {3, 7, 3, 4}, {6, 4, 2, 4}, {3, 3, 3, 4}, {3, 4, 6}, {3, 3, 1, 5, 6}, {2, 2, 4, 1, 2, 2, 6}, {5, 1, 1, 2, 3, 12}, {9, 1, 14}, {2, 2, 2, 9, 5}, {2, 2, 1, 1, 11, 4}, {1, 1, 12, 4}, {13, 3}, {3, 8, 4}, {4, 6, 4}, {5, 6}, {11, 9}, {25}, {26}, {24, 3, 2}, {21, 2, 2, 2}, {16, 1, 1, 1}, {4, 4, 3, 3}, {1, 2, 3}},
+		[][]uint{{4, 1}, {4, 2}, {4, 1, 1, 2}, {5, 1, 2, 1, 1, 4}, {4, 2, 1, 4, 4}, {3, 2, 1, 3, 4}, {1, 5, 1, 3, 2, 4}, {1, 4, 2, 6, 3}, {2, 3, 2, 1, 3, 3}, {2, 3, 1, 3, 1, 2, 5}, {3, 5, 1, 4, 5}, {3, 9, 2, 6}, {3, 1, 4, 2, 6}, {2, 1, 2, 2, 5}, {2, 2, 1, 4, 6}, {2, 1, 2, 2, 2, 6}, {3, 1, 2, 3, 6}, {2, 1, 2, 3, 6}, {2, 2, 2, 1, 1, 6}, {1, 2, 1, 1, 7}, {1, 3, 7}, {1, 2, 7}, {3, 3, 4}, {1, 1, 3, 6}, {3, 5}, {4, 1, 3}, {7, 3}, {1, 7, 2, 1}, {2, 8, 4, 1}, {3, 8, 7}, {1, 2, 9, 5, 2}, {6, 8, 3, 1}, {8, 7, 8}, {3, 14, 6, 2}, {4, 7, 3, 5, 2}, {3, 7, 5, 1}, {1, 2, 13}, {2, 1, 1, 12}, {1, 1, 9}, {2, 1, 5}},
+		str2Map(`####..#######........................#..
+                 #####...#########.................#.##.#
+                 #######...############...........###..##
+                 #########.......###............#######..
+                 ...############..............########..#
+                 ......######..#######.......##.##....##.
+                 ....####.#####....######...#######......
+                 ...###....#######...###.......####......
+                 .......######..####...##.......####.....
+                 ......###..###...###............####....
+                 .........###.####...............######..
+                 ...###.###.#..#####..............######.
+                 ..##..##.####.#.##............##.######.
+                 ....#####.#.#.##.###........############
+                 ..#########....#..........##############
+                 ....##.##.##.............#########.#####
+                 ...##.##.#.#............###########.####
+                 ......#..#.............############.####
+                 ......................#############.###.
+                 .....................###..########.####.
+                 ...................####..######...####..
+                 .................#####..........######..
+                 ..............###########...#########...
+                 ...........#########################....
+                 .........##########################.....
+                 ...########################.###.##......
+                 #####################..##....##.##......
+                 .################......#.....#..#.......
+                 ...####..####...............###.###.....
+                 ...........................#..##.###....`))
 }
-
-
-
-
-
-
-
-
-
-

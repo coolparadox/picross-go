@@ -46,7 +46,7 @@ func picr2Map(size uint, lengths []uint) []bool {
 // the next sequence of empty pixels,
 // and so on.
 func picrPermute(size uint, clue []uint) chan []uint {
-    clueLen := uint(len(clue))
+	clueLen := uint(len(clue))
 	var clueSum uint
 	for _, v := range clue {
 		clueSum += v
@@ -57,27 +57,27 @@ func picrPermute(size uint, clue []uint) chan []uint {
 		return ans
 	}
 	go func() {
-        gapsLen := clueLen+1
-        gapsSum := size-clueSum
-        gaps := make([]uint, gapsLen)
-        for i := range gaps {
-            gaps[i] = 1
-        }
-        gaps[0] = 0
-        gaps[gapsLen-1] = gapsSum+2-gapsLen
-        for {
-            e := make([]uint, clueLen+gapsLen)
-            for i, v := range clue {
-                e[1+2*i] = v
-            }
-            for i, v := range gaps {
-                e[2*i] = v
-            }
-            ans <- e
-            if !gapIterate(gaps) {
-                break
-            }
-        }
+		gapsLen := clueLen + 1
+		gapsSum := size - clueSum
+		gaps := make([]uint, gapsLen)
+		for i := range gaps {
+			gaps[i] = 1
+		}
+		gaps[0] = 0
+		gaps[gapsLen-1] = gapsSum + 2 - gapsLen
+		for {
+			e := make([]uint, clueLen+gapsLen)
+			for i, v := range clue {
+				e[1+2*i] = v
+			}
+			for i, v := range gaps {
+				e[2*i] = v
+			}
+			ans <- e
+			if !gapIterate(gaps) {
+				break
+			}
+		}
 		close(ans)
 	}()
 	return ans
@@ -91,27 +91,27 @@ func picrPermute(size uint, clue []uint) chan []uint {
 // - it's the next realization from a sorted set of all combinations that honor the previous invariants.
 // Returns true on success achieving a new combination, of false otherwise.
 func gapIterate(buf []uint) bool {
-    bufLen := uint(len(buf))
-    for i := int(bufLen)-1;; i-- {
-        if i == 0 {
-            return false
-        }
-        if i == int(bufLen)-1 {
-            if buf[i] <= 0 {
-                continue
-            }
-        } else {
-            if buf[i] <= 1 {
-                continue
-            }
-        }
-        buf[i-1] += 1
-        buf[i] -= 1
-        for j := i; j < int(bufLen)-1; j++ {
-            buf[j+1] += buf[j]-1
-            buf[j] = 1
-        }
-        break
-    }
-    return true
+	bufLen := uint(len(buf))
+	for i := int(bufLen) - 1; ; i-- {
+		if i == 0 {
+			return false
+		}
+		if i == int(bufLen)-1 {
+			if buf[i] <= 0 {
+				continue
+			}
+		} else {
+			if buf[i] <= 1 {
+				continue
+			}
+		}
+		buf[i-1] += 1
+		buf[i] -= 1
+		for j := i; j < int(bufLen)-1; j++ {
+			buf[j+1] += buf[j] - 1
+			buf[j] = 1
+		}
+		break
+	}
+	return true
 }
